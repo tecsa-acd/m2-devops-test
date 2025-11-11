@@ -18,6 +18,12 @@ echo "3. Extracting frontend and backend artifacts..."
 sudo unzip -o $TEMP_DIR/artifacts/frontend-artifact/frontend-artifact.zip -d $APP_DIR/public
 sudo unzip -o $TEMP_DIR/artifacts/backend-artifact/backend-artifact.zip -d $APP_DIR/backend
 
+echo "4. Installing Production Dependencies (Fix for missing node_modules)"
+# Crucial: Run install from the $APP_DIR root where package.json now resides
+cd $APP_DIR/backend
+npm install --production --prefer-offline 
+cd - > /dev/null
+
 echo "4. Apply correct ownership to app dir"
 # $USER is the deploy user running the script via SSH.
 sudo chown -R $USER:$USER $APP_DIR 
