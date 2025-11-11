@@ -7,6 +7,13 @@ BACKUP_DIR=/tmp/deployment_backup
 
 echo "--- Starting Deployment of WoF ---"
 
+# Ensure NVM is loaded so the 'npm' command is found.
+# This assumes NVM is installed in the SSH_USER's home directory.
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" # This loads nvm bash_completion
+# ------------------------------------
+
 echo "1. Stopping the app service gracefully"
 # Use 'sudo' as the deploy user to run systemctl without password (per sudoers config)
 sudo systemctl stop wof.service || true
