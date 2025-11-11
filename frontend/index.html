@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WoF</title>
+    <style>
+      h1 {
+        color: blue;
+        font-size: 48px;
+        margin-bottom: 24px;
+      }
+
+      #game-area {
+        background-color: aliceblue;
+        border: 4px solid blue;
+        border-radius: 24px;
+        padding: 32px;
+        text-align: center;
+      }
+
+      body {
+        font-family: Arial, Helvetica, sans-serif;
+        color: #333;
+        background: #edf7fe;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        justify-content: center;
+        align-items: center;
+      }
+
+      #spin-button {
+        background-color: #27ae60;
+        color: white;
+        font-size: 32px;
+        padding: 16px 32px;
+        margin-bottom: 24px;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+      }
+
+      #spin-button:hover {
+        background-color: #229a54;
+        transform: translateY(-4px);
+      }
+
+      #reset-button {
+        background-color: #95a5a6;
+        color: white;
+        font-size: 16px;
+        padding: 8px 16px;
+        margin-top: 24px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+
+      #reset-button:hover {
+        background-color: #7f8c8d;
+        transform: translateY(-4px);
+      }
+
+      #result-message {
+        font-size: 24px;
+        font-weight: bold;
+        margin-top: 24px;
+      }
+
+      #stats-display {
+        font-size: 20px;
+        color: #666;
+        margin-top: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Wheel of Fortune</h1>
+    <div id="game-area">
+      <button id="spin-button">Try your luck!</button>
+      <div id="result-message">Dummy result</div>
+      <div id="stats-display">Dummy stats</div>
+      <button id="reset-button">Reset Statistics</button>
+    </div>
+
+    <script>
+        const spinButton = document.getElementById('spin-button');
+        const resultMessage = document.getElementById('result-message');
+        const statsDisplay = document.getElementById('stats-display');
+        const resetButton = document.getElementById('reset-button');
+        const API_URL = '/api';
+
+        async function fetchGameState() {
+          try {
+            console.log(`User loading gamestate`);
+            const resp = await fetch(API_URL);
+            const gs = await resp.json();
+            updateFrontend(gs);
+          } catch (error) {
+            const errMsg = 'Could not fetch gs from BE!'
+            resultMessage.textContent = errMsg;
+            statsDisplay.textContent = errMsg;
+          }
+        }
+
+        /**
+         * Update FE based on game state returned from BE
+         * @param {GameState { wins: number; losses: number; lastResult: string; }}
+         * */
+        function updateFrontend(gs) {
+          if (gs.lastResult == null) {
+              resultMessage.textContent = `Try the first time!`;
+          } else if (gs.lastResult === 'Blank') {
+              resultMessage.textContent = `Unluckly, try again!`;
+          } else {
+            resultMessage.textContent = `Well done! You won: ${gs.lastResult}`;
+          }
+          statsDisplay.textContent = `Wins: ${gs.wins} | Losses: ${gs.losses}`;
+        }
+
+        async function spinWheel() {
+          try {
+            console.log(`User spinning the wheel`);
+            const resp = await fetch(`${API_URL}/spin`, { method: 'POST'});
+            const gs = await resp.json();
+            updateFrontend(gs);
+          } catch (error) {
+            const errMsg = 'Could not spin gs with BE!'
+            resultMessage.textContent = errMsg;
+          }
+        }
+
+        async function resetStats() {
+          try {
+            console.log(`User resetting gamestate`);
+            statsDisplay.textContent = '';
+            const resp = await fetch(`${API_URL}/reset`, { method: 'POST'});
+            const gs = await resp.json();
+            updateFrontend(gs);
+          } catch (error) {
+            const errMsg = 'Could not reset gs with BE!'
+            statsDisplay.textContent = errMsg;
+          }
+        }
+
+        spinButton.addEventListener('click', spinWheel);
+
+        resetButton.addEventListener('click', resetStats);
+
+        fetchGameState();
+    </script>
+  </body>
+</html>
