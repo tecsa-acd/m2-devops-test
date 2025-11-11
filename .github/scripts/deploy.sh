@@ -15,8 +15,8 @@ echo "2. Backup current production files from $APP_DIR to $BACKUP_DIR"
 sudo rsync -av --delete $APP_DIR/ $BACKUP_DIR/ || true
 
 echo "3. Extracting frontend and backend artifacts..."
-sudo unzip -o $TEMP_DIR/artifacts/frontend-artifact.zip -d $APP_DIR/public
-sudo unzip -o $TEMP_DIR/artifacts/backend-artifact.zip -d $APP_DIR/backend
+sudo unzip -o $TEMP_DIR/artifacts/frontend-artifact/frontend-artifact.zip -d $APP_DIR/public
+sudo unzip -o $TEMP_DIR/artifacts/backend-artifact/backend-artifact.zip -d $APP_DIR/backend
 
 echo "4. Apply correct ownership to app dir"
 # $USER is the deploy user running the script via SSH.
