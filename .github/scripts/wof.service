@@ -1,0 +1,29 @@
+[Unit]
+Description=Wheel of Fortune Node.js Backend API Service (/etc/systemd/system/)
+After=network.target
+
+[Service]
+# User and Group under which the service will run
+User=hsy-adm
+Group=hsy-adm
+
+# The working directory for the application
+WorkingDirectory=/var/www/hsy-stems.com/wof/backend
+
+# Command to execute the app.
+ExecStart=/home/hsy-adm/.nvm/versions/node/v24.11.0/bin/node server.js
+
+# Restart the service automatically on failure
+Restart=always
+RestartSec=3
+
+# Standard output and error handling
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=wheel-of-fortune
+
+# Environment variables (e.g., for port, database type)
+Environment=NODE_ENV=production DB_TYPE=filesystem PORT=3000
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,91 @@
+name: CI/CD Pipeline - Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v4
+        # Useful if check out of submodule from a different repo needed.
+        #with:
+        #  token: ${{ secrets.PAT_FOR_API_ACCESS }}
+
+      - name: 🛠️ Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # --- Repo Build Stage ---
+      - name: 📦 Install Dependencies
+        run: npm install
+
+      # --- Frontend Build Stage ---
+      - name: 🔨 Frontend Build (Static Files)
+        # Adjust 'build:frontend' if you use a build tool (e.g., 'npm run build')
+        # run: npm run build:frontend
+        # working-directory: ./frontend
+        run: echo "No build step for basic HTML/CSS/JS. Skipping build."
+
+      - name: 🔨 Archive Frontend Artifacts
+        run: zip -r frontend-artifact.zip ./frontend
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-artifact
+          path: frontend-artifact.zip
+
+      # --- Backend Build & Test Stage ---
+      
+        #- name: 📦 Install Backend Dependencies
+      #  run: npm install
+      #  working-directory: ./backend
+
+      - name: 🧪 Run Backend Tests
+        run: npm test
+        working-directory: ./backend
+
+      - name: 📦 Archive Backend Artifacts
+        run: zip -r backend-artifact.zip .
+        working-directory: ./backend
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-artifact
+          path: backend-artifact.zip
+
+  deploy:
+    needs: build_and_test # Ensures deployment only runs if build/test passes
+    runs-on: ubuntu-latest
+    environment: Production
+
+    steps:
+      - name: ⬇️ Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: 🚀 Deploy to Cloud VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Define variables
+            TEMP_DIR="/tmp/deployment_temp"
+            APP_DIR="${{ secrets.APP_DIR }}"
+            DEPLOY_SCRIPT="/home/${{ secrets.SSH_USER }}/deploy.sh"
+
+            echo "A. Preparing deployment on VPS..."
+            mkdir -p $TEMP_DIR
+
+            echo "B. Copying frontend & backend Artifacts to the VPS temp directory"
+            scp artifacts/frontend-artifact/frontend-artifact.zip ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:$TEMP_DIR/
+            scp artifacts/backend-artifact/backend-artifact.zip ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:$TEMP_DIR/
+
+            echo "C. Executing deployment script on VPS: $DEPLOY_SCRIPT $APP_DIR"
+            $DEPLOY_SCRIPT $APP_DIR
