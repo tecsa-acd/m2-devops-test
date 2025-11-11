@@ -12,53 +12,45 @@ jobs:
     steps:
       - name: ⬇️ Checkout code
         uses: actions/checkout@v4
-        # Useful if check out of submodule from a different repo needed.
-        #with:
-        #  token: ${{ secrets.PAT_FOR_API_ACCESS }}
 
       - name: 🛠️ Setup Node.js Environment
         uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      # --- Repo Build Stage ---
+      # --- Repo Build Stage (Shared Dependencies) ---
       - name: 📦 Install Dependencies
         run: npm install
 
       # --- Frontend Build Stage ---
       - name: 🔨 Frontend Build (Static Files)
-        # Adjust 'build:frontend' if you use a build tool (e.g., 'npm run build')
-        # run: npm run build:frontend
-        # working-directory: ./frontend
         run: echo "No build step for basic HTML/CSS/JS. Skipping build."
 
       - name: 🔨 Archive Frontend Artifacts
+        # Creates zip at repo root: frontend-artifact.zip
         run: zip -r frontend-artifact.zip ./frontend
       - uses: actions/upload-artifact@v4
         with:
           name: frontend-artifact
-          path: frontend-artifact.zip
+          path: frontend-artifact.zip # Correct, as zip was created at root
 
       # --- Backend Build & Test Stage ---
-      
-        #- name: 📦 Install Backend Dependencies
-      #  run: npm install
-      #  working-directory: ./backend
-
       - name: 🧪 Run Backend Tests
         run: npm test
         working-directory: ./backend
 
       - name: 📦 Archive Backend Artifacts
+        # Creates zip inside the backend folder: ./backend/backend-artifact.zip
         run: zip -r backend-artifact.zip .
         working-directory: ./backend
       - uses: actions/upload-artifact@v4
         with:
           name: backend-artifact
-          path: backend-artifact.zip
+          # Specify the path relative to the job root.
+          path: ./backend/backend-artifact.zip
 
   deploy:
-    needs: build_and_test # Ensures deployment only runs if build/test passes
+    needs: build_and_test
     runs-on: ubuntu-latest
     environment: Production
 
@@ -66,27 +58,18 @@ jobs:
       - name: ⬇️ Download Artifacts to Runner
         uses: actions/download-artifact@v4
         with:
-          # Downloads artifacts into subdirectories named after the artifact, 
-          # e.g., artifacts/backend-artifact/backend-artifact.zip
           path: artifacts/ 
 
-      # -----------------------------------------------------------------
-      # NEW STEP: Use the dedicated action for secure file transfer (SCP)
       - name: ⬆️ Copy Artifacts to Cloud VPS
         uses: appleboy/scp-action@v0.1.7 
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          # Source paths on the runner (must match download structure)
           source: "artifacts/frontend-artifact/frontend-artifact.zip,artifacts/backend-artifact/backend-artifact.zip" 
-          # Target directory on the VPS
           target: /tmp/deployment_temp/ 
-          # Ensures target directory exists
           strip_components: 0 
 
-      # -----------------------------------------------------------------
-      # MODIFIED STEP: Use SSH action only for running remote commands
       - name: 🚀 Execute Deployment Script on VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -94,17 +77,9 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # Define variables
             TEMP_DIR="/tmp/deployment_temp"
             APP_DIR="${{ secrets.APP_DIR }}"
             DEPLOY_SCRIPT="/home/${{ secrets.SSH_USER }}/deploy.sh"
-
-            echo "A. Cleaning up and defining environment on VPS..."
-            # Ensure the deployment directory exists
-            mkdir -p $APP_DIR
             
-            echo "B. Artifacts have been transferred to $TEMP_DIR (by scp-action)"
-            
-            echo "C. Executing deployment script on VPS: $DEPLOY_SCRIPT $APP_DIR"
-            # The deploy script must now use the transferred files from $TEMP_DIR/
+            echo "Executing deployment script on VPS: $DEPLOY_SCRIPT $APP_DIR"
             $DEPLOY_SCRIPT $APP_DIR
