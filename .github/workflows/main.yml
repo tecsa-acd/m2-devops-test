@@ -47,7 +47,7 @@ jobs:
         with:
           name: backend-artifact
           # Specify the path relative to the job root.
-          path: ./backend/backend-artifact.zip
+          path: backend-artifact.zip
 
   deploy:
     needs: build_and_test
