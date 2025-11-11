@@ -28,7 +28,8 @@ jobs:
 
       - name: 🔨 Archive Frontend Artifacts
         # Creates zip at repo root: frontend-artifact.zip
-        run: zip -r frontend-artifact.zip ./frontend
+        run: zip -r ../frontend-artifact.zip .
+        working-directory: ./frontend
       - uses: actions/upload-artifact@v4
         with:
           name: frontend-artifact
@@ -41,7 +42,7 @@ jobs:
 
       - name: 📦 Archive Backend Artifacts
         # Creates zip inside the backend folder: ./backend/backend-artifact.zip
-        run: zip -r backend-artifact.zip .
+        run: zip -r backend-artifact.zip package.json package-lock.json backend
         working-directory: ./backend
       - uses: actions/upload-artifact@v4
         with:
