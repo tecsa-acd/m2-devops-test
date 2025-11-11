@@ -63,12 +63,31 @@ jobs:
     environment: Production
 
     steps:
-      - name: ⬇️ Download Artifacts
+      - name: ⬇️ Download Artifacts to Runner
         uses: actions/download-artifact@v4
         with:
-          path: artifacts/
+          # Downloads artifacts into subdirectories named after the artifact, 
+          # e.g., artifacts/backend-artifact/backend-artifact.zip
+          path: artifacts/ 
 
-      - name: 🚀 Deploy to Cloud VPS via SSH
+      # -----------------------------------------------------------------
+      # NEW STEP: Use the dedicated action for secure file transfer (SCP)
+      - name: ⬆️ Copy Artifacts to Cloud VPS
+        uses: appleboy/scp-action@v0.1.7 
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # Source paths on the runner (must match download structure)
+          source: "artifacts/frontend-artifact/frontend-artifact.zip,artifacts/backend-artifact/backend-artifact.zip" 
+          # Target directory on the VPS
+          target: /tmp/deployment_temp/ 
+          # Ensures target directory exists
+          strip_components: 0 
+
+      # -----------------------------------------------------------------
+      # MODIFIED STEP: Use SSH action only for running remote commands
+      - name: 🚀 Execute Deployment Script on VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -80,12 +99,12 @@ jobs:
             APP_DIR="${{ secrets.APP_DIR }}"
             DEPLOY_SCRIPT="/home/${{ secrets.SSH_USER }}/deploy.sh"
 
-            echo "A. Preparing deployment on VPS..."
-            mkdir -p $TEMP_DIR
-
-            echo "B. Copying frontend & backend Artifacts to the VPS temp directory"
-            scp artifacts/frontend-artifact/frontend-artifact.zip ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:$TEMP_DIR/
-            scp artifacts/backend-artifact/backend-artifact.zip ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:$TEMP_DIR/
-
+            echo "A. Cleaning up and defining environment on VPS..."
+            # Ensure the deployment directory exists
+            mkdir -p $APP_DIR
+            
+            echo "B. Artifacts have been transferred to $TEMP_DIR (by scp-action)"
+            
             echo "C. Executing deployment script on VPS: $DEPLOY_SCRIPT $APP_DIR"
+            # The deploy script must now use the transferred files from $TEMP_DIR/
             $DEPLOY_SCRIPT $APP_DIR
