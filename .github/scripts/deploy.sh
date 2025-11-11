@@ -18,7 +18,7 @@ echo "3. Extracting frontend and backend artifacts..."
 sudo unzip -o $TEMP_DIR/artifacts/frontend-artifact/frontend-artifact.zip -d $APP_DIR/public
 sudo unzip -o $TEMP_DIR/artifacts/backend-artifact/backend-artifact.zip -d $APP_DIR/backend
 
-echo "4. Installing Production Dependencies (Fix for missing node_modules)"
+echo "4. Installing Production Dependencies"
 # Crucial: Run install from the $APP_DIR root where package.json now resides
 cd $APP_DIR/backend
 npm install --production --prefer-offline 
